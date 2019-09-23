@@ -20,6 +20,7 @@ public class Calculator extends JFrame {
     private JButton seven;
     private JButton eight;
     private JButton nine;
+    private JButton clear;
     private JButton zero;
     private JButton backspace;
 
@@ -33,11 +34,16 @@ public class Calculator extends JFrame {
     private JPanel textFieldPanel;
     private JTextField textField;
     private int result;
-    private Stack stack;
+    private Stack numberDigitStack;
     private Queue queue;
 
+    private boolean isLastElementInQueueSign;
+
+    private JPanel homePanel;
+    private JButton homeButton;
+
     public Calculator() {
-        this.setPreferredSize(new Dimension(400, 500));
+        this.setPreferredSize(new Dimension(400, 525));
         this.setTitle("Calculator");
         this.setLayout(new BoxLayout(this.getContentPane(), BoxLayout.PAGE_AXIS));
         textFieldPanel = new JPanel();
@@ -90,7 +96,7 @@ public class Calculator extends JFrame {
             }
         });
         equal = new JButton("=");
-        equal.setPreferredSize(new Dimension(70,70));
+        equal.setPreferredSize(new Dimension(70, 70));
         equal.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -174,7 +180,14 @@ public class Calculator extends JFrame {
                 selectNum(9);
             }
         });
-        numberPanel.add(new JButton(""));
+        clear = new JButton("CLEAR");
+        numberPanel.add(clear);
+        clear.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                selectClear();
+            }
+        });
         zero = new JButton("0");
         numberPanel.add(zero);
         zero.addActionListener(new ActionListener() {
@@ -193,46 +206,107 @@ public class Calculator extends JFrame {
         });
 
         result = 0;
-        stack = new Stack();
+        numberDigitStack = new Stack();
         queue = new LinkedList();
+        isLastElementInQueueSign = false;
+
+        homePanel = new JPanel();
+        homePanel.setLayout(new GridLayout());
+        homeButton = new JButton("HOME");
+        homeButton.setPreferredSize(new Dimension(400, 25));
+        homeButton.setBackground(Color.green);
+        homePanel.add(homeButton);
+        homeButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                setVisible(false);
+                dispose();
+            }
+        });
+        this.add(homePanel);
 
         this.pack();
     }
 
     public void selectNum(int input) {
-        if (input == 0 && stack.empty())
-            return;
-        else{
-            stack.push(input);
-            updateStack();
-        }
+        numberDigitStack.push(input);
+        updateStack();
+        isLastElementInQueueSign = false;
     }
 
     public void selectSign(String input) {
-        textField.setText(input);
+        if (isLastElementInQueueSign) {
+            textField.setText("Not allowed, please enter a number");
+        } else {
+            textField.setText(input);
+            queue.offer(result);
+            queue.offer(input);
+            while (!numberDigitStack.empty())
+                numberDigitStack.pop();
+            isLastElementInQueueSign = true;
+        }
+    }
+
+    public void selectEqualSign() {
         queue.offer(result);
-        queue.offer(input);
-        while(!stack.empty())
-            stack.pop();
+        queue = doMultAndDivFirst(queue);
+        while (!queue.isEmpty()) {
+            Object object = queue.remove();
+            if (object.equals("+") || object.equals("-") || object.equals("*") || object.equals("/")) {
+                if (object.equals("+"))
+                    result += (int) queue.remove();
+                else if (object.equals("-"))
+                    result -= (int) queue.remove();
+                else if (object.equals("*"))
+                    result *= (int) queue.remove();
+                else
+                    result /= (int) queue.remove();
+            } else {
+                result = (int) object;
+            }
+        }
+        textField.setText(Integer.toString(result));
+        while (!numberDigitStack.empty())
+            numberDigitStack.pop();
     }
 
-    public void selectEqualSign(){
-
+    public void selectClear() {
+        textField.setText("");
+        while (!numberDigitStack.empty())
+            numberDigitStack.pop();
+        while (!queue.isEmpty())
+            queue.remove();
+        result = 0;
+        isLastElementInQueueSign = false;
     }
 
-    public void selectBack(){
-        //Add if statement that removes the sign when textfield is a sign
-        //if(
-        stack.pop();
-        updateStack();
+    public void selectBack() {
+        if (textField.getText().equals("+") || textField.getText().equals("-") || textField.getText().equals("*") || textField.getText().equals("/")) {
+            textField.setText("");
+            Queue newQueue = new LinkedList();
+            while (queue.size() > 1) {
+                Object notLastElement = queue.remove();
+                newQueue.offer(notLastElement);
+            }
+            queue = newQueue;
+            textField.setText(Integer.toString(result));
+            isLastElementInQueueSign = false;
+        } else {
+            if (numberDigitStack.isEmpty())
+                textField.setText("Not allowed, already cleared");
+            else {
+                numberDigitStack.pop();
+                updateStack();
+            }
+        }
     }
 
-    public void updateStack(){
+    public void updateStack() {
         int i = 0;
         int acc = 0;
-        Iterator iterator = stack.iterator();
-        while (iterator.hasNext()) {
 
+        Iterator iterator = numberDigitStack.iterator();
+        while (iterator.hasNext()) {
             i += (int) iterator.next() * Math.pow(10, acc);
             acc++;
         }
@@ -243,9 +317,63 @@ public class Calculator extends JFrame {
             new_i += a;
             i /= 10;
         }
+        while (String.valueOf(new_i).length() != acc) {
+            new_i *= 10;
+        }
         result = new_i;
         textField.setText(Integer.toString(result));
     }
 
-    //Implement PQ that computes multiplication and division first
+    public Queue doMultAndDivFirst(Queue queue){
+        Queue intermediateQueue = new LinkedList();
+        while(!queue.isEmpty()){
+            Object object = queue.peek();
+            if((!object.equals("*")) && (!object.equals("/"))){
+                intermediateQueue.offer(queue.remove());
+            }
+            else{
+                if(object.equals("*")){
+                    Queue intermediateQueue2 = new LinkedList();
+                    queue.remove();
+                    int second = (int) queue.remove();
+                    Iterator iterator = intermediateQueue.iterator();
+                    Object first = null;
+                    while(iterator.hasNext()){
+                        first = iterator.next();
+                    }
+                    int intFirst = (int) first;
+                    int result = intFirst * second;
+                    int a = intermediateQueue.size();
+                    while(a > 1){
+                        intermediateQueue2.offer(intermediateQueue.remove());
+                        a--;
+                    }
+                    intermediateQueue2.offer(result);
+                    intermediateQueue = intermediateQueue2;
+                }
+                else if(object.equals("/")){
+                    Queue intermediateQueue2 = new LinkedList();
+                    queue.remove();
+                    int second = (int) queue.remove();
+                    Iterator iterator = intermediateQueue.iterator();
+                    Object first = null;
+                    while(iterator.hasNext()){
+                        first = iterator.next();
+                    }
+                    int intFirst = (int) first;
+                    int result = intFirst / second;
+                    int a = intermediateQueue.size();
+                    while(a > 1){
+                        intermediateQueue2.offer(intermediateQueue.remove());
+                        a--;
+                    }
+                    intermediateQueue2.offer(result);
+                    intermediateQueue = intermediateQueue2;
+                }
+            }
+        }
+        return intermediateQueue;
+    }
+
+    //For later: Implement decimals
 }

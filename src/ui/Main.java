@@ -14,10 +14,10 @@ public class Main {
     public static void main(String[] args) {
         JFrame mainFrame = new JFrame();
         mainFrame.setTitle("Virtual Phone");
-        mainFrame.setPreferredSize(new Dimension(400,500));
+        mainFrame.setPreferredSize(new Dimension(400,525));
         mainFrame.setLayout(new BoxLayout(mainFrame.getContentPane(),BoxLayout.PAGE_AXIS));
         mainFrame.setVisible(true);
-        mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        mainFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
         JPanel panel = new JPanel();
         panel.setBackground(Color.blue);
@@ -59,9 +59,7 @@ public class Main {
             public void actionPerformed(ActionEvent e) {
                 try {
                     Desktop.getDesktop().browse(new URL("http://www.youtube.com").toURI());
-                } catch (IOException e1) {
-                    e1.printStackTrace();
-                } catch (URISyntaxException e1) {
+                } catch (IOException | URISyntaxException e1) {
                     e1.printStackTrace();
                 }
             }
@@ -73,10 +71,8 @@ public class Main {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
-                    Desktop.getDesktop().browse(new URL("https://www.comic.naver.com/webtoon/weekday.nhn").toURI());
-                } catch (IOException e1) {
-                    e1.printStackTrace();
-                } catch (URISyntaxException e1) {
+                    Desktop.getDesktop().browse(new URL("https://www.webtoons.com/en/").toURI());
+                } catch (IOException | URISyntaxException e1) {
                     e1.printStackTrace();
                 }
             }
@@ -97,7 +93,7 @@ public class Main {
         mainFrame.add(homePanel);
 
         JButton homeButton = new JButton("HOME");
-        homeButton.setPreferredSize(new Dimension(400,100));
+        homeButton.setPreferredSize(new Dimension(400,25));
         homeButton.setBackground(Color.green);
         homePanel.add(homeButton);
 
